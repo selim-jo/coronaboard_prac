@@ -1,7 +1,7 @@
 import React from 'react';
 import { css } from '@emotion/react';
 // 증감량을 표현하는 함수, 숫자에 천 단위 구분 기호를 추가하여 표현하는 함수
-import { fomatDiff, numberWithCommas } from '../utils/formatter';
+import { formatDiff, numberWithCommas } from '../utils/formatter';
 
 export function DashboardItem(props) {
     const { text, current, prev, diffColor, unit } = props;

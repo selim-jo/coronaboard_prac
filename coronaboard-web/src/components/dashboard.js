@@ -14,16 +14,16 @@ export function Dashboard(props) {
         worldDeathPrev,
         worldReleased,
         worldReleasedPrev,
-    } = globalStats.reduce((acc, x) => {
+      } = globalStats.reduce((acc, x) => {
         return {
-            worldConfirmed: (acc,worldConfirmed || 0) + x.confirmed,
-            worldConfirmedPrev: (acc.worldConfirmedPrev || 0) + x.confirmedPrev,
-            worldDeath: (acc.worldDeath || 0) + x.deathPrev,
-            worldDeathPrev: (acc.worldReleased || 0) + x.deathPrev,
-            worldReleased: (acc.worldReleased || 0) + x.released,
-            worldReleasedPrev: (acc.worldReleasedPrev || 0) + x.releasedPrev,
+          worldConfirmed: (acc.worldConfirmed || 0) + x.confirmed,
+          worldConfirmedPrev: (acc.worldConfirmedPrev || 0) + x.confirmedPrev,
+          worldDeath: (acc.worldDeath || 0) + x.death,
+          worldDeathPrev: (acc.worldDeathPrev || 0) + x.deathPrev,
+          worldReleased: (acc.worldReleased || 0) + x.released,
+          worldReleasedPrev: (acc.worldReleasedPrev || 0) + x.releasedPrev,
         };
-    }, {});
+      }, {});
 
     // 치명률, 발생국 수 계산
     const worldFatality = (worldDeath / worldConfirmed) * 100;

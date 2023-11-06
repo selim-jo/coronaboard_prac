@@ -3,11 +3,14 @@ const axios = require('axios');
 const { subDays } = require('date-fns'); // 날짜, 시간 포매팅 라이브러리 
 const { format, utcToZonedTime } = require('date-fns-tz'); // 날짜, 시간 포매팅 라이브러리
 const _ = require('lodash'); // 자바스크립트가 제공하지 않는 유용한 유틸리티 함수를 제공하는 라이브러리
+const path = require('path');
+const fs = require('fs-extra');
 
 const countryInfo = require('../../tools/downloaded/countryInfo.json'); // 각 국가의 정보를 담은 객체들의 배열
 const ApiClient = require('./api-client');
 // 구글 시트로부터 내려받은 공지사항 목록 로드
 const notice = require('../../tools/downloaded/notice.json');
+const { count } = require('console');
 
 async function getDataSource() {
     const countryByCc = _.keyBy(countryInfo, 'cc'); // countryInfo에서 cc 필드를 키로 사용하는 맵을 만든 것
@@ -19,7 +22,16 @@ async function getDataSource() {
     // 날짜별로 데이터를 묶는 부분을 기존 generateGlobalStats() 함수에서 추출
     const groupedByDate = _.groupBy(allGlobalStats, 'date');
     const globalStats = generateGlobalStats(groupedByDate);
+    // 전체 기간에 대한 국가별 데이터 로드
+    const globalChartDataByCc = generateGlobalChartDataByCc(groupedByDate);
 
+    // 국가별 차트 데이터를 국가별로 순회하여 저장
+    Object.keys(globalChartDataByCc).forEach((cc) => {
+        const genPath = path.join(process.cwd(), `static/generated/${cc}.json`);
+        fs.outputFileSync(genPath, JSON.stringify(globalChartDataByCc[cc]));
+    });
+
+    // 생성된 차트 데이터를 빌드 시점에 주입할 필요가 없어서 반환값에 추가되는 것이 없음
     return {
         lastUpdated: Date.now(), // 데이터를 만든 현재 시간 기록
         globalStats,
@@ -29,7 +41,7 @@ async function getDataSource() {
     };
 }
 
-async function generateGlobalStats(groupedByDate) {
+function generateGlobalStats(groupedByDate) {
     // HTTP 클라이언트 생성
     //const apiClient = axios.create({
     //    baseURL: process.env.CORONABOARD_API_BASE_URL || 'http://localhost:8080',
@@ -90,6 +102,86 @@ function createGlobalStatWithPrevField(todayStats, yesterdayStats) {
     });
 
     return globalStatWithPrev;
+}
+
+// 차트에 사용하기 적합한 형태로 변환하기 위한 함수
+function generateGlobalChartDataByCc(groupedByDate) {
+    // 국가 코드를 필드 이름으로 하여 차트 데이터를 저장할 객체 선언 
+    const chartDataByCc = {};
+    // 모든 키값(날짜)를 불러와서 날짜순으로 정렬
+    const dates = Object.keys(groupedByDate).sort();
+    for (const date of dates) {
+        const countriesDataForOneDay = groupedByDate[date];
+        for (const countryData of countriesDataForOneDay) {
+            const cc = countryData.cc;
+            // 특정 국가의 차트 데이터 객체가 정의되지 않았다면 기본값으로 생성
+            if (!chartDataByCc[cc]) {
+                chartDataByCc[cc] = {
+                    date: [],
+                    confirmed: [],    // 해당 날짜의 확진자 수
+                    confirmedAcc: [], // 해당 날짜까지의 누적 확진자 수
+                    death: [],        // 사망자 수
+                    deathAcc: [],
+                    released: [],     // 격리해제자 수
+                    releasedAcc: [],
+                };
+            }
+            // 특정 국가의 차트 데이터에 특정 국가의 현재 날짜의 데이터 추가
+            appendToChartData(chartDataByCc[cc], countryData, date);
+        }
+
+        // 날짜별로 모든 국가에 대한 합산 데이터를 global이라는 임의의 국가 코드에 저장
+        if (!chartDataByCc['global']) {
+            chartDataByCc['global'] = {
+                date: [],
+                confirmed: [],
+                confirmedAcc: [],
+                death: [],
+                deathAcc: [],
+                released: [],
+                releasedAcc: [],
+            };
+        }
+
+        const countryDataSum = countriesDataForOneDay.reduce(
+            (sum, x) => ({
+                confirmed: sum.confirmed + x.confirmed,
+                death: sum.death + x.death,
+                // release 데이터가 없는 국가들이 존재하여 별도 처리
+                released: sum.released + (x.released || 0),
+            }),
+            { confirmed: 0, death: 0, released: 0 },
+        );
+
+        appendToChartData(chartDataByCc['global'], countryData, date);
+    }
+
+    return chartDataByCc;
+}
+
+function appendToChartData(chartData, countryData, date) {
+    // 전일 데이터가 없는 경우 현재 날짜 데이터를 그대로 사용
+    if (chartData.date.length === 0) {
+        chartData.confirmed.push(countryData.confirmed);
+        chartData.death.push(countryData.death);
+        chartData.released.push(countryData.released);
+    } else {
+        // 전일 대비 증가량 저장
+        const confirmedIncrement = countryData.confirmed - _.last(chartData.confirmedAcc) || 0;
+        chartData.confirmed.push(confirmedIncrement);
+
+        const deathIncrement = countryData.death - _.last(chartData.deathAcc) || 0;
+        chartData.death.push(deathIncrement);
+
+        const releasedIncrement = countryData.released - _.last(chartData.releasedAcc) || 0;
+        chartData.released.push(releasedIncrement);
+    }
+
+    chartData.confirmedAcc.push(countryData.confirmed);
+    chartData.deathAcc.push(countryData.death);
+    chartData.releasedAcc.push(countryData.released);
+
+    chartData.date.push(date);
 }
 
 module.exports = {

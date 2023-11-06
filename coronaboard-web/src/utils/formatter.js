@@ -1,5 +1,5 @@
 import format from 'date-fns/format';
-import parserISO from 'date-fns/parseISO';
+import parseISO from 'date-fns/parseISO';
 
 // Intl 네임스페이스의 NumberFormat을 이용하여 한국에서 사용하는 숫자 포매터 생성
 const NumberFormatter = new Intl.NumberFormat('ko-KR');
