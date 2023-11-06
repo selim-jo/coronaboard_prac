@@ -6,7 +6,7 @@ import {
     numberWithUnitFormatter,
 } from '../../utils/formatter';
 import { Echart } from '../echart';
-import { Button, ButtonGroup, card } from 'react-bootstrap';
+import { Button, ButtonGroup, Card } from 'react-bootstrap';
 import Select from 'react-select';
 import axios from 'axios';
 import { colors } from '../../config';

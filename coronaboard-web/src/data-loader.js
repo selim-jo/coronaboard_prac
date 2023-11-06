@@ -26,6 +26,7 @@ async function getDataSource() {
     const globalChartDataByCc = generateGlobalChartDataByCc(groupedByDate);
 
     // 국가별 차트 데이터를 국가별로 순회하여 저장
+    // static/generated 디렉터리는 데이터에따라 매번 생성되는 파일이기 때문에 .gitignore에 추가해서 git 저장소에 추가되지 않도록 할것
     Object.keys(globalChartDataByCc).forEach((cc) => {
         const genPath = path.join(process.cwd(), `static/generated/${cc}.json`);
         fs.outputFileSync(genPath, JSON.stringify(globalChartDataByCc[cc]));
@@ -153,7 +154,7 @@ function generateGlobalChartDataByCc(groupedByDate) {
             { confirmed: 0, death: 0, released: 0 },
         );
 
-        appendToChartData(chartDataByCc['global'], countryData, date);
+        appendToChartData(chartDataByCc['global'], countryDataSum, date);
     }
 
     return chartDataByCc;
