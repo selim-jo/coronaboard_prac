@@ -7,6 +7,8 @@ import { Dashboard } from '../components/dashboard';
 import { Notice } from '../components/notice';
 import { GlobalSlide } from '../components/global-slide';
 import { GlobalChartSlide } from '../components/global-chart-slide';
+import { KoreaChartSlide } from '../components/korea-chart-slide';
+import { YoutubeSlide } from '../components/youtube-slide';
 
 export default function SinglePage({ pageContext }) {
     // pageContext를 통해 전달된 데이터를 추출해서 사용
@@ -56,6 +58,8 @@ export default function SinglePage({ pageContext }) {
             <Notice notice={notice} />
             <GlobalSlide id="global-slide" dataSource={dataSource} />
             <GlobalChartSlide id="global-chart-slide" dataSource={dataSource} />
+            <KoreaChartSlide id="korea-chart-slide" dataSource={dataSource} />
+            <YoutubeSlide id="youtube-slide" dataSource={dataSource} />
         </div>
     );
 }

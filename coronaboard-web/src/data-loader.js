@@ -11,6 +11,7 @@ const ApiClient = require('./api-client');
 // 구글 시트로부터 내려받은 공지사항 목록 로드
 const notice = require('../../tools/downloaded/notice.json');
 const { count } = require('console');
+const { getYouTubeVideosByKeyword } = require('./youtube');
 
 async function getDataSource() {
     const countryByCc = _.keyBy(countryInfo, 'cc'); // countryInfo에서 cc 필드를 키로 사용하는 맵을 만든 것
@@ -32,6 +33,15 @@ async function getDataSource() {
         fs.outputFileSync(genPath, JSON.stringify(globalChartDataByCc[cc]));
     });
 
+    // 검사 현황 차트 데이터 생성
+    const koreaTestChartData = generateKoreaTestChartData(allGlobalStats);
+
+    // 7장에서 수집해서 저장해둔 연령대별, 성별 통계 로드
+    const { byAge, bySex } = await apiClient.getByAgeAndBySex();
+
+    // 유튜브 관련 데이터
+    const youtubeVideos = await getYouTubeVideosByKeyword('코로나19');
+
     // 생성된 차트 데이터를 빌드 시점에 주입할 필요가 없어서 반환값에 추가되는 것이 없음
     return {
         lastUpdated: Date.now(), // 데이터를 만든 현재 시간 기록
@@ -39,6 +49,25 @@ async function getDataSource() {
         countryByCc,
         // 공지사항 목록 중 hidden 필드가 false인 항목만 필터하여 전달
         notice: notice.filter((x) => !x.hidden),
+        koreaTestChartData,
+        koreaBySexChartData: bySex,
+        koreaByAgeChartData: byAge,
+        youtubeVideos,
+    };
+}
+
+// 한국 데이터만 먼저 추출 -> 확진율을 의미하는 confirmedRate 필드 새롭게 추가 -> 차트 그리는데 적합한 형식으로 나머지 필드들도 변경
+function generateKoreaTestChartData(allGlobalStats) {
+    // 전체 국가 데이터 중 한국만 추출
+    const krData = allGlobalStats.filter((x) => x.cc === 'KR');
+
+    return {
+        date: krData.map((x) => x.date),
+        // 확진율 계산
+        confirmedRate: krData.map((x) => x.confirmed / (x.confirmed + x.negative)),
+        confirmed: krData.map((x) => x.confirmed),
+        negative: krData.map((x) => x.negative),
+        testing: krData.map((x) => x.testing),
     };
 }
 
